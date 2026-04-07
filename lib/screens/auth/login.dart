@@ -5,6 +5,7 @@ import 'package:confms_mobile/screens/auth/auth_page_scaffold.dart';
 import 'package:confms_mobile/services/api_service.dart';
 import 'package:confms_mobile/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
@@ -12,12 +13,14 @@ class LoginScreen extends StatefulWidget {
     required this.onSubmit,
     required this.onGoToForgotPassword,
     required this.onGoToRegister,
+    this.onGoogleSignIn,
   });
 
   final Future<void> Function({required String email, required String password})
   onSubmit;
   final VoidCallback onGoToForgotPassword;
   final VoidCallback onGoToRegister;
+  final Future<void> Function()? onGoogleSignIn;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -29,6 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _obscurePassword = true;
   String? _error;
 
@@ -67,6 +71,31 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    if (widget.onGoogleSignIn == null) return;
+
+    setState(() {
+      _error = null;
+      _isGoogleLoading = true;
+    });
+
+    try {
+      await widget.onGoogleSignIn!();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = 'Google sign-in failed. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.scheme;
@@ -82,25 +111,22 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(Icons.event_available, color: scheme.primary),
+                Center(
+                  child: Text('Welcome back', style: context.text.headlineSmall),
                 ),
-                const SizedBox(height: AppDimensions.space4),
-                Text('Welcome back', style: context.text.headlineSmall),
                 const SizedBox(height: AppDimensions.space2),
-                Text(
-                  'Use your conference account to access tickets, papers, and profile settings.',
-                  style: AppTextStyles.bodyMuted.copyWith(
-                    color: scheme.onSurfaceVariant,
+                Center(
+                  child: Text(
+                    'Sign in to access tickets, papers, and profile settings.',
+                    style: AppTextStyles.bodyMuted.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
                 const SizedBox(height: AppDimensions.space5),
+
+                // --- Email/Password fields ---
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -167,13 +193,84 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: AppDimensions.space5),
+                const SizedBox(height: AppDimensions.space4),
                 CustomButton(
                   label: 'Log in',
                   expanded: true,
                   isLoading: _isLoading,
                   onPressed: _submit,
                 ),
+
+                // --- Divider ---
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppDimensions.space4,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: Divider(color: tokens.cardBorder)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppDimensions.space3,
+                        ),
+                        child: Text(
+                          'or',
+                          style: AppTextStyles.caption.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: tokens.cardBorder)),
+                    ],
+                  ),
+                ),
+
+                // --- Google Sign-In Button ---
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: (_isGoogleLoading || _isLoading)
+                        ? null
+                        : _handleGoogleSignIn,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, AppDimensions.inputHeight),
+                      side: BorderSide(color: tokens.cardBorder),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppDimensions.radiusMd,
+                        ),
+                      ),
+                    ),
+                    child: _isGoogleLoading
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: scheme.onSurface,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SvgPicture.asset(
+                                'assets/images/google_logo.svg',
+                                width: 20,
+                                height: 20,
+                              ),
+                              const SizedBox(width: AppDimensions.space2),
+                              Text(
+                                'Continue with Google',
+                                style: AppTextStyles.body.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: scheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+
                 const SizedBox(height: AppDimensions.space4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

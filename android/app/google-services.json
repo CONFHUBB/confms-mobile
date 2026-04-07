@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "214949256364",
+    "project_id": "filestorage-71871",
+    "storage_bucket": "filestorage-71871.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:214949256364:android:bb53ee19542dea8eb45309",
+        "android_client_info": {
+          "package_name": "com.confhub.confhub_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-cOptTvFfHSUx4fX4ypRaPTKEpFsfsvA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

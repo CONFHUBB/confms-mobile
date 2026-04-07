@@ -21,13 +21,11 @@ class ProfileTab extends StatefulWidget {
     required this.authSession,
     required this.featureService,
     required this.onLogout,
-    required this.onOpenNotifications,
   });
 
   final AuthSession authSession;
   final MobileFeatureService featureService;
   final Future<void> Function() onLogout;
-  final VoidCallback onOpenNotifications;
 
   @override
   State<ProfileTab> createState() => _ProfileTabState();
@@ -217,7 +215,7 @@ class _ProfileTabState extends State<ProfileTab> {
       title: 'Profile',
       subtitle: 'Personal, affiliation, contact and academic info.',
       icon: Icons.person_rounded,
-      onOpenNotifications: widget.onOpenNotifications,
+      user: widget.authSession.user,
       body: ListView(
         padding: const EdgeInsets.all(AppDimensions.screenPadding),
         children: [

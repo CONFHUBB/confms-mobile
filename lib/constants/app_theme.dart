@@ -58,6 +58,9 @@ class AppTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: Brightness.light,
+    ).copyWith(
+      primary: AppColors.primary,
+      onPrimary: Colors.white,
     );
 
     return _buildTheme(colorScheme, const AppColorTokens(

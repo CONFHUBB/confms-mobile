@@ -12,12 +12,10 @@ class AttendTab extends StatefulWidget {
     super.key,
     required this.featureService,
     required this.user,
-    required this.onOpenNotifications,
   });
 
   final MobileFeatureService featureService;
   final AuthUser? user;
-  final VoidCallback onOpenNotifications;
 
   @override
   State<AttendTab> createState() => _AttendTabState();
@@ -32,7 +30,7 @@ class _AttendTabState extends State<AttendTab> {
       title: 'My Tickets',
       subtitle: 'Conferences first, then ticket details and documents.',
       icon: Icons.confirmation_num_rounded,
-      onOpenNotifications: widget.onOpenNotifications,
+      user: widget.user,
       body: _buildTicketsSection(userId: userId),
     );
   }

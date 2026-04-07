@@ -9,12 +9,11 @@ class ApiService {
   final http.Client _client;
   final Future<String?> Function()? tokenProvider;
 
-  // Android emulator: localhost points to host machine.
-  // iOS simulator/desktop can use localhost directly via --dart-define override.
+  // Fixed domain — no VPN needed.
+  // Override with --dart-define=API_BASE_URL=... for local dev.
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    // For Web testing defaultValue: 'http://localhost:8080/api/v1',
-    defaultValue: 'http://localhost:8080/api/v1',
+    defaultValue: 'https://confhub.io.vn/api/v1',
   );
 
   Uri _buildUri(String path) {
