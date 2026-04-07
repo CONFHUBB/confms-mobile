@@ -1,5 +1,6 @@
 import 'package:confms_mobile/constants/app_theme.dart';
 import 'package:confms_mobile/constants/dimensions.dart';
+import 'package:confms_mobile/features/main_shell/screens/notifications_center_screen.dart';
 import 'package:confms_mobile/features/main_shell/tabs/attend_tab.dart';
 import 'package:confms_mobile/features/main_shell/tabs/contribute_tab.dart';
 import 'package:confms_mobile/features/main_shell/tabs/home_tab.dart';
@@ -35,6 +36,18 @@ class _MainShellScreenState extends State<MainShellScreen> {
     Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
   }
 
+  void _openNotifications() {
+    final user = widget.authSession.user;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => NotificationsCenterScreen(
+          featureService: widget.featureService,
+          user: user,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = widget.authSession.user;
@@ -44,19 +57,26 @@ class _MainShellScreenState extends State<MainShellScreen> {
         child: IndexedStack(
           index: _currentTab.index,
           children: [
-            HomeTab(featureService: widget.featureService, user: user),
+            HomeTab(
+              featureService: widget.featureService,
+              user: user,
+              onOpenNotifications: _openNotifications,
+            ),
             AttendTab(
               featureService: widget.featureService,
               user: user,
+              onOpenNotifications: _openNotifications,
             ),
             ContributeTab(
               user: user,
               featureService: widget.featureService,
+              onOpenNotifications: _openNotifications,
             ),
             ProfileTab(
               authSession: widget.authSession,
               featureService: widget.featureService,
               onLogout: _handleLogout,
+              onOpenNotifications: _openNotifications,
             ),
           ],
         ),

@@ -38,6 +38,10 @@ class ApiService {
     return _decodeAnyResponse(response);
   }
 
+  Future<http.Response> getRaw(String path) async {
+    return _client.get(_buildUri(path), headers: await _buildHeaders());
+  }
+
   Future<Map<String, dynamic>> post(
     String path, {
     Map<String, dynamic>? body,

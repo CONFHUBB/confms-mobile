@@ -5,11 +5,7 @@ import 'package:confms_mobile/widgets/custom_card.dart';
 import 'package:flutter/material.dart';
 
 class SectionCard extends StatelessWidget {
-  const SectionCard({
-    super.key,
-    required this.title,
-    required this.children,
-  });
+  const SectionCard({super.key, required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
@@ -111,11 +107,13 @@ class TopSwitchButton extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onPressed,
+    this.icon,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onPressed;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -127,12 +125,17 @@ class TopSwitchButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         foregroundColor: selected ? scheme.primary : scheme.onSurfaceVariant,
         backgroundColor: selected ? scheme.primaryContainer : scheme.surface,
-        side: BorderSide(
-          color: selected ? scheme.primary : tokens.cardBorder,
-        ),
+        side: BorderSide(color: selected ? scheme.primary : tokens.cardBorder),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
-      child: Text(label),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[Icon(icon, size: 16), const SizedBox(width: 6)],
+          Text(label),
+        ],
+      ),
     );
   }
 }
@@ -154,7 +157,9 @@ class SectionError extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: AppTextStyles.body.copyWith(color: context.scheme.onSurface),
+              style: AppTextStyles.body.copyWith(
+                color: context.scheme.onSurface,
+              ),
             ),
           ),
         ],

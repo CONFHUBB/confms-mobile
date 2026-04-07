@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:confms_mobile/constants/app_theme.dart';
 import 'package:confms_mobile/constants/dimensions.dart';
 import 'package:confms_mobile/constants/text_styles.dart';
+import 'package:confms_mobile/features/main_shell/widgets/main_tab_scaffold.dart';
 import 'package:confms_mobile/features/main_shell/widgets/shell_shared_widgets.dart';
 import 'package:confms_mobile/models/auth_user.dart';
 import 'package:confms_mobile/models/user_profile.dart';
@@ -20,11 +21,13 @@ class ProfileTab extends StatefulWidget {
     required this.authSession,
     required this.featureService,
     required this.onLogout,
+    required this.onOpenNotifications,
   });
 
   final AuthSession authSession;
   final MobileFeatureService featureService;
   final Future<void> Function() onLogout;
+  final VoidCallback onOpenNotifications;
 
   @override
   State<ProfileTab> createState() => _ProfileTabState();
@@ -61,7 +64,8 @@ class _ProfileTabState extends State<ProfileTab> {
   final TextEditingController _phoneMobileController = TextEditingController();
   final TextEditingController _websiteController = TextEditingController();
   final TextEditingController _dblpController = TextEditingController();
-  final TextEditingController _googleScholarController = TextEditingController();
+  final TextEditingController _googleScholarController =
+      TextEditingController();
   final TextEditingController _orcidController = TextEditingController();
   final TextEditingController _semanticScholarController =
       TextEditingController();
@@ -110,16 +114,18 @@ class _ProfileTabState extends State<ProfileTab> {
     }
 
     try {
-      final profile = await widget.featureService.getUserProfile(userId: userId);
+      final profile = await widget.featureService.getUserProfile(
+        userId: userId,
+      );
       if (!mounted) return;
       if (profile != null) {
         _applyProfile(profile);
       }
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to load profile: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unable to load profile: $error')));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -184,9 +190,9 @@ class _ProfileTabState extends State<ProfileTab> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save profile: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to save profile: $error')));
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -207,118 +213,136 @@ class _ProfileTabState extends State<ProfileTab> {
             .trim();
     final email = user?.email ?? claims['email']?.toString() ?? '-';
 
-    return ListView(
-      padding: const EdgeInsets.all(AppDimensions.screenPadding),
-      children: [
-        Text('Profile', style: context.text.headlineSmall),
-        const SizedBox(height: AppDimensions.space4),
-        CustomCard(
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: scheme.primaryContainer,
-                child: Text(
-                  _initials(user),
-                  style: AppTextStyles.title.copyWith(color: scheme.primary),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(fullName.isEmpty ? 'User' : fullName, style: AppTextStyles.title),
-                    const SizedBox(height: 2),
-                    Text(
-                      email,
-                      style: AppTextStyles.bodyMuted.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      children: (user?.roles ?? _rolesFromClaims(claims))
-                          .map((role) => MiniChip(label: role.replaceFirst('ROLE_', '')))
-                          .toList(),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppDimensions.space3),
-        CustomCard(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+    return MainTabScaffold(
+      title: 'Profile',
+      subtitle: 'Personal, affiliation, contact and academic info.',
+      icon: Icons.person_rounded,
+      onOpenNotifications: widget.onOpenNotifications,
+      body: ListView(
+        padding: const EdgeInsets.all(AppDimensions.screenPadding),
+        children: [
+          CustomCard(
             child: Row(
               children: [
-                TopSwitchButton(
-                  label: 'Personal',
-                  selected: _activeSection == _ProfileSection.personal,
-                  onPressed: () => setState(
-                    () => _activeSection = _ProfileSection.personal,
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: scheme.primaryContainer,
+                  child: Text(
+                    _initials(user),
+                    style: AppTextStyles.title.copyWith(color: scheme.primary),
                   ),
                 ),
-                const SizedBox(width: AppDimensions.space2),
-                TopSwitchButton(
-                  label: 'Affiliation',
-                  selected: _activeSection == _ProfileSection.affiliation,
-                  onPressed: () => setState(
-                    () => _activeSection = _ProfileSection.affiliation,
-                  ),
-                ),
-                const SizedBox(width: AppDimensions.space2),
-                TopSwitchButton(
-                  label: 'Contact',
-                  selected: _activeSection == _ProfileSection.contact,
-                  onPressed: () =>
-                      setState(() => _activeSection = _ProfileSection.contact),
-                ),
-                const SizedBox(width: AppDimensions.space2),
-                TopSwitchButton(
-                  label: 'Academic',
-                  selected: _activeSection == _ProfileSection.academic,
-                  onPressed: () => setState(
-                    () => _activeSection = _ProfileSection.academic,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        fullName.isEmpty ? 'User' : fullName,
+                        style: AppTextStyles.title,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        email,
+                        style: AppTextStyles.bodyMuted.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        children: (user?.roles ?? _rolesFromClaims(claims))
+                            .map(
+                              (role) => MiniChip(
+                                label: role.replaceFirst('ROLE_', ''),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ),
-        const SizedBox(height: AppDimensions.space3),
-        if (_isLoading)
-          const Center(child: Padding(
-            padding: EdgeInsets.all(AppDimensions.space6),
-            child: CircularProgressIndicator(),
-          ))
-        else
-          _buildSectionContent(),
-        const SizedBox(height: AppDimensions.space4),
-        CustomButton(
-          label: 'Save Profile',
-          expanded: true,
-          icon: _isSaving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.save_outlined, size: 18),
-          onPressed: _isSaving || userId == null ? null : _saveProfile,
-        ),
-        const SizedBox(height: AppDimensions.space3),
-        CustomButton(
-          label: 'Logout',
-          expanded: true,
-          variant: CustomButtonVariant.outline,
-          icon: const Icon(Icons.logout, size: 18),
-          onPressed: widget.onLogout,
-        ),
-      ],
+          const SizedBox(height: AppDimensions.space3),
+          CustomCard(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _ProfileChip(
+                    icon: Icons.person_rounded,
+                    label: 'Personal',
+                    selected: _activeSection == _ProfileSection.personal,
+                    onTap: () => setState(
+                      () => _activeSection = _ProfileSection.personal,
+                    ),
+                  ),
+                  const SizedBox(width: AppDimensions.space2),
+                  _ProfileChip(
+                    icon: Icons.apartment_rounded,
+                    label: 'Affiliation',
+                    selected: _activeSection == _ProfileSection.affiliation,
+                    onTap: () => setState(
+                      () => _activeSection = _ProfileSection.affiliation,
+                    ),
+                  ),
+                  const SizedBox(width: AppDimensions.space2),
+                  _ProfileChip(
+                    icon: Icons.contact_phone_rounded,
+                    label: 'Contact',
+                    selected: _activeSection == _ProfileSection.contact,
+                    onTap: () => setState(
+                      () => _activeSection = _ProfileSection.contact,
+                    ),
+                  ),
+                  const SizedBox(width: AppDimensions.space2),
+                  _ProfileChip(
+                    icon: Icons.school_rounded,
+                    label: 'Academic',
+                    selected: _activeSection == _ProfileSection.academic,
+                    onTap: () => setState(
+                      () => _activeSection = _ProfileSection.academic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppDimensions.space3),
+          if (_isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppDimensions.space6),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else
+            _buildSectionContent(),
+          const SizedBox(height: AppDimensions.space4),
+          CustomButton(
+            label: 'Save Profile',
+            expanded: true,
+            icon: _isSaving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined, size: 18),
+            onPressed: _isSaving || userId == null ? null : _saveProfile,
+          ),
+          const SizedBox(height: AppDimensions.space3),
+          CustomButton(
+            label: 'Logout',
+            expanded: true,
+            variant: CustomButtonVariant.outline,
+            icon: const Icon(Icons.logout, size: 18),
+            onPressed: widget.onLogout,
+          ),
+        ],
+      ),
     );
   }
 
@@ -332,16 +356,24 @@ class _ProfileTabState extends State<ProfileTab> {
               value: _selectedUserType,
               decoration: const InputDecoration(labelText: 'User Type'),
               items: _userTypes
-                  .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+                  .map(
+                    (item) => DropdownMenuItem(value: item, child: Text(item)),
+                  )
                   .toList(),
               onChanged: (value) => setState(() => _selectedUserType = value),
             ),
             const SizedBox(height: AppDimensions.space3),
-            _field('Job Title', _jobTitleController,
-                hint: 'e.g. Associate Professor'),
+            _field(
+              'Job Title',
+              _jobTitleController,
+              hint: 'e.g. Associate Professor',
+            ),
             const SizedBox(height: AppDimensions.space3),
-            _field('Avatar URL', _avatarUrlController,
-                hint: 'https://example.com/avatar.jpg'),
+            _field(
+              'Avatar URL',
+              _avatarUrlController,
+              hint: 'https://example.com/avatar.jpg',
+            ),
             const SizedBox(height: AppDimensions.space3),
             _field(
               'Biography',
@@ -356,53 +388,85 @@ class _ProfileTabState extends State<ProfileTab> {
         return SectionCard(
           title: 'Affiliation',
           children: [
-            _field('Institution', _institutionController,
-                hint: 'e.g. FPT University'),
+            _field(
+              'Institution',
+              _institutionController,
+              hint: 'e.g. FPT University',
+            ),
             const SizedBox(height: AppDimensions.space3),
-            _field('Department', _departmentController,
-                hint: 'e.g. Computer Science'),
+            _field(
+              'Department',
+              _departmentController,
+              hint: 'e.g. Computer Science',
+            ),
             const SizedBox(height: AppDimensions.space3),
-            _field('Institution Country', _institutionCountryController,
-                hint: 'e.g. Vietnam'),
+            _field(
+              'Institution Country',
+              _institutionCountryController,
+              hint: 'e.g. Vietnam',
+            ),
             const SizedBox(height: AppDimensions.space3),
-            _field('Institution Website', _institutionUrlController,
-                hint: 'https://university.edu'),
+            _field(
+              'Institution Website',
+              _institutionUrlController,
+              hint: 'https://university.edu',
+            ),
             const SizedBox(height: AppDimensions.space3),
-            _field('Secondary Institution', _secondaryInstitutionController,
-                hint: 'Optional'),
+            _field(
+              'Secondary Institution',
+              _secondaryInstitutionController,
+              hint: 'Optional',
+            ),
             const SizedBox(height: AppDimensions.space3),
-            _field('Secondary Country', _secondaryCountryController,
-                hint: 'Optional'),
+            _field(
+              'Secondary Country',
+              _secondaryCountryController,
+              hint: 'Optional',
+            ),
           ],
         );
       case _ProfileSection.contact:
         return SectionCard(
           title: 'Contact Details',
           children: [
-            _field('Office Phone', _phoneOfficeController,
-                hint: '+84 28 1234 5678'),
+            _field(
+              'Office Phone',
+              _phoneOfficeController,
+              hint: '+84 28 1234 5678',
+            ),
             const SizedBox(height: AppDimensions.space3),
-            _field('Mobile Phone', _phoneMobileController,
-                hint: '+84 912 345 678'),
+            _field(
+              'Mobile Phone',
+              _phoneMobileController,
+              hint: '+84 912 345 678',
+            ),
             const SizedBox(height: AppDimensions.space3),
-            _field('Personal Website', _websiteController,
-                hint: 'https://yourwebsite.com'),
+            _field(
+              'Personal Website',
+              _websiteController,
+              hint: 'https://yourwebsite.com',
+            ),
           ],
         );
       case _ProfileSection.academic:
         return SectionCard(
           title: 'Academic Profiles',
           children: [
-            _field('ORCID iD', _orcidController,
-                hint: '0000-0002-1825-0097'),
+            _field('ORCID iD', _orcidController, hint: '0000-0002-1825-0097'),
             const SizedBox(height: AppDimensions.space3),
-            _field('Google Scholar', _googleScholarController,
-                hint: 'https://scholar.google.com/citations?user=XXXX'),
+            _field(
+              'Google Scholar',
+              _googleScholarController,
+              hint: 'https://scholar.google.com/citations?user=XXXX',
+            ),
             const SizedBox(height: AppDimensions.space3),
             _field('DBLP', _dblpController, hint: 'Your DBLP author ID'),
             const SizedBox(height: AppDimensions.space3),
-            _field('Semantic Scholar', _semanticScholarController,
-                hint: 'Your Semantic Scholar author ID'),
+            _field(
+              'Semantic Scholar',
+              _semanticScholarController,
+              hint: 'Your Semantic Scholar author ID',
+            ),
           ],
         );
     }
@@ -454,5 +518,42 @@ class _ProfileTabState extends State<ProfileTab> {
     } catch (_) {
       return const <String, dynamic>{};
     }
+  }
+}
+
+class _ProfileChip extends StatelessWidget {
+  const _ProfileChip({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected
+        ? context.scheme.primary
+        : context.scheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        selected: selected,
+        showCheckmark: false,
+        onSelected: (_) => onTap(),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(label),
+          ],
+        ),
+      ),
+    );
   }
 }

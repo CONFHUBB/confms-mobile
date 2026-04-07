@@ -39,15 +39,7 @@ class NotificationsTab extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.all(AppDimensions.screenPadding),
           children: [
-            Text('Notifications', style: context.text.headlineSmall),
             const SizedBox(height: AppDimensions.space2),
-            Text(
-              'Alerts with deep-link placeholders to Attend/Contribute flows.',
-              style: AppTextStyles.bodyMuted.copyWith(
-                color: context.scheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: AppDimensions.space4),
             if (items.isEmpty)
               const CenteredMutedText('No notifications.')
             else
@@ -79,13 +71,6 @@ class NotificationsTab extends StatelessWidget {
                           n.message,
                           style: AppTextStyles.body.copyWith(
                             color: context.scheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Deep link: ${n.deepLinkHint}',
-                          style: AppTextStyles.caption.copyWith(
-                            color: context.scheme.onSurfaceVariant,
                           ),
                         ),
                       ],

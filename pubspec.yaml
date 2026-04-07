@@ -39,6 +39,8 @@ dependencies:
   shared_preferences: ^2.5.3
   google_nav_bar: ^5.0.7
   flutter_svg: ^2.2.4
+  url_launcher: ^6.3.1
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
