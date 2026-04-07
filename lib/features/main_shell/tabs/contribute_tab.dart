@@ -17,12 +17,12 @@ class ContributeTab extends StatefulWidget {
     super.key,
     required this.user,
     required this.featureService,
-    required this.onOpenNotifications,
+    this.onMenuTap,
   });
 
   final AuthUser? user;
   final MobileFeatureService featureService;
-  final VoidCallback onOpenNotifications;
+  final VoidCallback? onMenuTap;
 
   @override
   State<ContributeTab> createState() => _ContributeTabState();
@@ -59,7 +59,8 @@ class _ContributeTabState extends State<ContributeTab> {
         title: 'My Papers',
         subtitle: 'Author workspace and conference submissions.',
         icon: Icons.article_rounded,
-        onOpenNotifications: widget.onOpenNotifications,
+        user: widget.user,
+        onMenuTap: widget.onMenuTap,
         body: const CenteredMutedText('Missing user context.'),
       );
     }
@@ -76,7 +77,8 @@ class _ContributeTabState extends State<ContributeTab> {
       icon: _selectedConference == null
           ? Icons.folder_special_rounded
           : Icons.space_dashboard_rounded,
-      onOpenNotifications: widget.onOpenNotifications,
+      user: widget.user,
+      onMenuTap: widget.onMenuTap,
       body: _selectedConference == null
           ? _buildConferenceList(user.id)
           : _buildConferenceWorkspace(user.id, _selectedConference!),

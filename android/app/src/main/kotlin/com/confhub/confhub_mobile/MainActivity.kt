@@ -1,4 +1,4 @@
-package com.example.confms_mobile
+package com.confhub.confhub_mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

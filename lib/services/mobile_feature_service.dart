@@ -10,6 +10,9 @@ class MobileFeatureService {
 
   final ApiService _apiService;
 
+  /// Public reference for screens that need direct API access.
+  ApiService get apiServiceRef => _apiService;
+
   /// Placeholder aggregator for Home tab.
   ///
   /// Planned backend sources:
@@ -280,8 +283,26 @@ class MobileFeatureService {
               : 'Home',
         ),
         isRead: raw['isRead'] == true,
+        type: type,
+        createdAt: _string(raw['createdAt'], fallback: ''),
       );
     }).toList();
+  }
+
+  /// Mark a single notification as read.
+  /// Backend: PUT /api/v1/notifications/{id}/read
+  Future<void> markNotificationRead({required int notificationId}) async {
+    try {
+      await _apiService.put('/notifications/$notificationId/read');
+    } catch (_) {}
+  }
+
+  /// Mark all notifications as read for a user.
+  /// Backend: PUT /api/v1/notifications/user/{userId}/read-all
+  Future<void> markAllNotificationsRead({required int userId}) async {
+    try {
+      await _apiService.put('/notifications/user/$userId/read-all');
+    } catch (_) {}
   }
 
   /// Backend: GET /api/v1/my-payment-history?userId={userId}
@@ -364,6 +385,114 @@ class MobileFeatureService {
           }).length,
         ),
       );
+    }
+
+    result.sort(
+      (a, b) => a.conferenceName.toLowerCase().compareTo(
+        b.conferenceName.toLowerCase(),
+      ),
+    );
+    return result;
+  }
+
+  /// Fetches ALL conferences the user participates in (any role).
+  /// Uses /conference-user-tracks/users/{userId}/my-roles to get all roles,
+  /// then fetches conference details for each unique conferenceId.
+  Future<List<AuthorConferenceSummary>> getAllMyConferences({
+    required int userId,
+  }) async {
+    final rolesData = await _apiService.getAny(
+      '/conference-user-tracks/users/$userId/my-roles',
+    );
+    if (rolesData is! List) return const <AuthorConferenceSummary>[];
+
+    // Group roles by conferenceId
+    final conferenceRoles = <int, Set<String>>{};
+    final conferenceNames = <int, String>{};
+
+    for (final row in rolesData.whereType<Map<String, dynamic>>()) {
+      final conferenceId = _toInt(row['conferenceId']);
+      if (conferenceId == null) continue;
+
+      final role = _string(row['assignedRole'], fallback: '').toUpperCase();
+      conferenceRoles.putIfAbsent(conferenceId, () => <String>{}).add(role);
+
+      final name = _string(row['conferenceName'], fallback: '');
+      if (name.isNotEmpty) {
+        conferenceNames[conferenceId] = name;
+      }
+    }
+
+    if (conferenceRoles.isEmpty) {
+      // Fallback to author-only conferences
+      return getAuthorConferences(userId: userId);
+    }
+
+    // Also merge author conferences (from paper submissions)
+    final authorConfs = await getAuthorConferences(userId: userId);
+    final authorConfIds = <int, AuthorConferenceSummary>{};
+    for (final ac in authorConfs) {
+      authorConfIds[ac.conferenceId] = ac;
+      conferenceRoles.putIfAbsent(ac.conferenceId, () => <String>{}).add('AUTHOR');
+    }
+
+    final result = <AuthorConferenceSummary>[];
+    for (final conferenceId in conferenceRoles.keys) {
+      // If we already have author data for this, reuse it
+      final existingAuthor = authorConfIds[conferenceId];
+      if (existingAuthor != null) {
+        result.add(AuthorConferenceSummary(
+          conferenceId: existingAuthor.conferenceId,
+          conferenceName: existingAuthor.conferenceName,
+          acronym: existingAuthor.acronym,
+          location: existingAuthor.location,
+          status: existingAuthor.status,
+          startDate: existingAuthor.startDate,
+          endDate: existingAuthor.endDate,
+          myPaperCount: existingAuthor.myPaperCount,
+          acceptedCount: existingAuthor.acceptedCount,
+          roles: conferenceRoles[conferenceId]?.toList() ?? const <String>[],
+        ));
+        continue;
+      }
+
+      // Fetch conference details for non-author conferences
+      try {
+        final confData = await _apiService.getAny('/conferences/$conferenceId');
+        final conf = confData is Map<String, dynamic>
+            ? confData
+            : const <String, dynamic>{};
+
+        result.add(AuthorConferenceSummary(
+          conferenceId: conferenceId,
+          conferenceName: _string(
+            conf['name'],
+            fallback: conferenceNames[conferenceId] ?? 'Conference #$conferenceId',
+          ),
+          acronym: _string(conf['acronym'], fallback: ''),
+          location: _string(conf['location'], fallback: 'TBA'),
+          status: _string(conf['status'], fallback: 'UNKNOWN'),
+          startDate: _string(conf['startDate'], fallback: ''),
+          endDate: _string(conf['endDate'], fallback: ''),
+          myPaperCount: 0,
+          acceptedCount: 0,
+          roles: conferenceRoles[conferenceId]?.toList() ?? const <String>[],
+        ));
+      } catch (_) {
+        // If conference fetch fails, still show with basic info
+        result.add(AuthorConferenceSummary(
+          conferenceId: conferenceId,
+          conferenceName: conferenceNames[conferenceId] ?? 'Conference #$conferenceId',
+          acronym: '',
+          location: 'TBA',
+          status: 'UNKNOWN',
+          startDate: '',
+          endDate: '',
+          myPaperCount: 0,
+          acceptedCount: 0,
+          roles: conferenceRoles[conferenceId]?.toList() ?? const <String>[],
+        ));
+      }
     }
 
     result.sort(
@@ -862,6 +991,8 @@ class NotificationPreview {
     required this.message,
     required this.deepLinkHint,
     required this.isRead,
+    this.type = '',
+    this.createdAt = '',
   });
 
   final int id;
@@ -869,6 +1000,8 @@ class NotificationPreview {
   final String message;
   final String deepLinkHint;
   final bool isRead;
+  final String type;
+  final String createdAt;
 }
 
 class PaymentHistoryPreview {
@@ -898,6 +1031,7 @@ class AuthorConferenceSummary {
     required this.endDate,
     required this.myPaperCount,
     required this.acceptedCount,
+    this.roles = const <String>[],
   });
 
   final int conferenceId;
@@ -909,6 +1043,7 @@ class AuthorConferenceSummary {
   final String endDate;
   final int myPaperCount;
   final int acceptedCount;
+  final List<String> roles;
 }
 
 class ConferenceProgressStep {

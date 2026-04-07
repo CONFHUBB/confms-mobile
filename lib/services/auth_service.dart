@@ -70,6 +70,22 @@ class AuthService {
     return LoginResult(token: token, user: AuthUser.fromJson(data));
   }
 
+  Future<LoginResult> loginWithGoogle({required String idToken}) async {
+    final data = await _apiService.post(
+      '/auth/google',
+      body: {'idToken': idToken},
+    );
+
+    final token = _extractToken(data);
+    if (token.trim().isEmpty) {
+      throw const ApiException(
+        message: 'Google login response did not include a token.',
+      );
+    }
+
+    return LoginResult(token: token, user: AuthUser.fromJson(data));
+  }
+
   String _extractToken(Map<String, dynamic> data) {
     final fromCommonKeys =
         data['token'] ?? data['accessToken'] ?? data['jwt'] ?? '';

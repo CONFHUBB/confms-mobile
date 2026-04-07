@@ -1,5 +1,5 @@
-import 'package:confms_mobile/constants/dimensions.dart';
 import 'package:confms_mobile/constants/app_theme.dart';
+import 'package:confms_mobile/constants/dimensions.dart';
 import 'package:confms_mobile/features/main_shell/widgets/main_tab_scaffold.dart';
 import 'package:confms_mobile/features/main_shell/widgets/shell_shared_widgets.dart';
 import 'package:confms_mobile/models/auth_user.dart';
@@ -11,12 +11,12 @@ class HomeTab extends StatelessWidget {
     super.key,
     required this.featureService,
     required this.user,
-    required this.onOpenNotifications,
+    this.onMenuTap,
   });
 
   final MobileFeatureService featureService;
   final AuthUser? user;
-  final VoidCallback onOpenNotifications;
+  final VoidCallback? onMenuTap;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +26,8 @@ class HomeTab extends StatelessWidget {
         title: 'Home',
         subtitle: 'Conference highlights and quick updates.',
         icon: Icons.home_rounded,
-        onOpenNotifications: onOpenNotifications,
+        user: user,
+        onMenuTap: onMenuTap,
         body: const CenteredMutedText('No user context available.'),
       );
     }
@@ -35,7 +36,8 @@ class HomeTab extends StatelessWidget {
       title: 'Home',
       subtitle: 'Welcome, ${user?.firstName ?? 'User'}',
       icon: Icons.space_dashboard_rounded,
-      onOpenNotifications: onOpenNotifications,
+      user: user,
+      onMenuTap: onMenuTap,
       body: FutureBuilder<_HomeData>(
         future: _loadHomeData(userId),
         builder: (context, snapshot) {
@@ -58,37 +60,192 @@ class HomeTab extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.all(AppDimensions.screenPadding),
               children: [
-                if (data.ticketCount > 0)
+                // Quick stats row
+                Row(
+                  children: [
+                    Expanded(
+                      child: _QuickStatCard(
+                        icon: Icons.event_rounded,
+                        label: 'Conferences',
+                        value: '${data.activeConferences.length}',
+                        color: Colors.indigo,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _QuickStatCard(
+                        icon: Icons.article_rounded,
+                        label: 'Papers',
+                        value: '${data.paperCount}',
+                        color: Colors.teal,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _QuickStatCard(
+                        icon: Icons.confirmation_num_rounded,
+                        label: 'Tickets',
+                        value: '${data.ticketCount}',
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppDimensions.space4),
+
+                // Ticket summary
+                if (data.ticketCount > 0) ...[
                   _buildSummaryCard(
                     context,
                     icon: Icons.confirmation_num_rounded,
                     title: 'My Tickets',
                     count: data.ticketCount,
                     status:
-                        '${data.paidCount} paid, ${data.pendingCount} pending',
+                        '${data.paidCount} paid · ${data.pendingCount} pending',
                     color: Colors.indigo,
                   ),
-                if (data.ticketCount > 0) const SizedBox(height: 12),
-                if (data.paperCount > 0)
+                  const SizedBox(height: 12),
+                ],
+
+                // Paper summary
+                if (data.paperCount > 0) ...[
                   _buildSummaryCard(
                     context,
                     icon: Icons.article_rounded,
                     title: 'My Papers',
                     count: data.paperCount,
                     status:
-                        '${data.acceptedCount} accepted, ${data.underReviewCount} reviewing',
+                        '${data.acceptedCount} accepted · ${data.underReviewCount} reviewing',
                     color: Colors.teal,
                   ),
-                if (data.paperCount > 0)
-                  const SizedBox(height: AppDimensions.space3),
-                SectionCard(
-                  title: 'Active Conferences',
-                  children: data.activeConferences.isEmpty
-                      ? const [CenteredMutedText('No active conferences.')]
-                      : data.activeConferences
-                            .map((conf) => _buildConferenceCard(context, conf))
-                            .toList(),
-                ),
+                  const SizedBox(height: AppDimensions.space4),
+                ],
+
+                // Active conferences list
+                _SectionHeader(title: 'Active Conferences'),
+                const SizedBox(height: 8),
+                if (data.activeConferences.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: context.scheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.event_busy_rounded,
+                          size: 40,
+                          color: context.scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No active conferences',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                color: context.scheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ...data.activeConferences
+                      .map((conf) => _buildConferenceCard(context, conf)),
+
+                // Recent notifications preview
+                const SizedBox(height: AppDimensions.space4),
+                _SectionHeader(title: 'Recent Notifications'),
+                const SizedBox(height: 8),
+                if (data.recentNotifications.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: context.scheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.notifications_off_rounded,
+                          size: 40,
+                          color: context.scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No recent notifications',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                color: context.scheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ...data.recentNotifications.map(
+                    (n) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: n.isRead
+                            ? context.scheme.surface
+                            : context.scheme.primaryContainer
+                                .withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: context.tokens.cardBorder),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (!n.isRead)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              margin: const EdgeInsets.only(top: 5, right: 8),
+                              decoration: BoxDecoration(
+                                color: context.scheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  n.title,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  n.message,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color:
+                                            context.scheme.onSurfaceVariant,
+                                      ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: AppDimensions.space6),
               ],
             ),
           );
@@ -100,6 +257,9 @@ class HomeTab extends StatelessWidget {
   Future<_HomeData> _loadHomeData(int userId) async {
     final tickets = await featureService.getMyTickets(userId: userId);
     final conferences = await featureService.getAuthorConferences(
+      userId: userId,
+    );
+    final notifications = await featureService.getNotifications(
       userId: userId,
     );
 
@@ -142,6 +302,7 @@ class HomeTab extends StatelessWidget {
       acceptedCount: accepted,
       underReviewCount: underReview,
       activeConferences: activeConfs,
+      recentNotifications: notifications.take(5).toList(),
     );
   }
 
@@ -154,65 +315,57 @@ class HomeTab extends StatelessWidget {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      status,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: context.scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  count.toString(),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w800,
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  status,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: context.scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              count.toString(),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w800,
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -224,7 +377,7 @@ class HomeTab extends StatelessWidget {
     AuthorConferenceSummary conf,
   ) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: context.scheme.primaryContainer.withValues(alpha: 0.08),
@@ -233,83 +386,69 @@ class HomeTab extends StatelessWidget {
           color: context.scheme.primary.withValues(alpha: 0.2),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.event_rounded, color: Colors.green, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  conf.conferenceName,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Row(
                   children: [
-                    Text(
-                      conf.conferenceName,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Icon(
+                      Icons.location_on_rounded,
+                      size: 12,
+                      color: context.scheme.onSurfaceVariant,
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on_rounded,
-                          size: 14,
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(
+                        conf.location,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: context.scheme.onSurfaceVariant,
                         ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            conf.location,
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: context.scheme.onSurfaceVariant,
-                                ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: Colors.green.withValues(alpha: 0.25),
-                  ),
-                ),
-                child: Text(
-                  conf.status,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.green,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _buildConfMiniStat(
-                context,
-                label: 'Papers',
-                value: conf.myPaperCount.toString(),
-                color: Colors.indigo,
+              Text(
+                '${conf.myPaperCount}',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Colors.indigo,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-              _buildConfMiniStat(
-                context,
-                label: 'Accepted',
-                value: conf.acceptedCount.toString(),
-                color: Colors.green,
+              Text(
+                'papers',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: context.scheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -317,29 +456,69 @@ class HomeTab extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildConfMiniStat(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+class _QuickStatCard extends StatelessWidget {
+  const _QuickStatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
       children: [
         Text(
-          value,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: color,
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
           ),
         ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: context.scheme.onSurfaceVariant,
-          ),
-        ),
+        const Spacer(),
       ],
     );
   }
@@ -354,6 +533,7 @@ class _HomeData {
     required this.acceptedCount,
     required this.underReviewCount,
     required this.activeConferences,
+    required this.recentNotifications,
   });
 
   final int ticketCount;
@@ -363,4 +543,5 @@ class _HomeData {
   final int acceptedCount;
   final int underReviewCount;
   final List<AuthorConferenceSummary> activeConferences;
+  final List<NotificationPreview> recentNotifications;
 }
