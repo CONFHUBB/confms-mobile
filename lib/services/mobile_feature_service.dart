@@ -376,6 +376,7 @@ class MobileFeatureService {
           status: status,
           startDate: _string(conf['startDate'], fallback: ''),
           endDate: _string(conf['endDate'], fallback: ''),
+          bannerImageUrl: _string(conf['bannerImageUrl'], fallback: ''),
           myPaperCount: papers.length,
           acceptedCount: papers.where((p) {
             final state = _string(p['status'], fallback: '').toUpperCase();
@@ -433,7 +434,9 @@ class MobileFeatureService {
     final authorConfIds = <int, AuthorConferenceSummary>{};
     for (final ac in authorConfs) {
       authorConfIds[ac.conferenceId] = ac;
-      conferenceRoles.putIfAbsent(ac.conferenceId, () => <String>{}).add('AUTHOR');
+      conferenceRoles
+          .putIfAbsent(ac.conferenceId, () => <String>{})
+          .add('AUTHOR');
     }
 
     final result = <AuthorConferenceSummary>[];
@@ -441,18 +444,21 @@ class MobileFeatureService {
       // If we already have author data for this, reuse it
       final existingAuthor = authorConfIds[conferenceId];
       if (existingAuthor != null) {
-        result.add(AuthorConferenceSummary(
-          conferenceId: existingAuthor.conferenceId,
-          conferenceName: existingAuthor.conferenceName,
-          acronym: existingAuthor.acronym,
-          location: existingAuthor.location,
-          status: existingAuthor.status,
-          startDate: existingAuthor.startDate,
-          endDate: existingAuthor.endDate,
-          myPaperCount: existingAuthor.myPaperCount,
-          acceptedCount: existingAuthor.acceptedCount,
-          roles: conferenceRoles[conferenceId]?.toList() ?? const <String>[],
-        ));
+        result.add(
+          AuthorConferenceSummary(
+            conferenceId: existingAuthor.conferenceId,
+            conferenceName: existingAuthor.conferenceName,
+            acronym: existingAuthor.acronym,
+            location: existingAuthor.location,
+            status: existingAuthor.status,
+            startDate: existingAuthor.startDate,
+            endDate: existingAuthor.endDate,
+            bannerImageUrl: existingAuthor.bannerImageUrl,
+            myPaperCount: existingAuthor.myPaperCount,
+            acceptedCount: existingAuthor.acceptedCount,
+            roles: conferenceRoles[conferenceId]?.toList() ?? const <String>[],
+          ),
+        );
         continue;
       }
 
@@ -463,35 +469,43 @@ class MobileFeatureService {
             ? confData
             : const <String, dynamic>{};
 
-        result.add(AuthorConferenceSummary(
-          conferenceId: conferenceId,
-          conferenceName: _string(
-            conf['name'],
-            fallback: conferenceNames[conferenceId] ?? 'Conference #$conferenceId',
+        result.add(
+          AuthorConferenceSummary(
+            conferenceId: conferenceId,
+            conferenceName: _string(
+              conf['name'],
+              fallback:
+                  conferenceNames[conferenceId] ?? 'Conference #$conferenceId',
+            ),
+            acronym: _string(conf['acronym'], fallback: ''),
+            location: _string(conf['location'], fallback: 'TBA'),
+            status: _string(conf['status'], fallback: 'UNKNOWN'),
+            startDate: _string(conf['startDate'], fallback: ''),
+            endDate: _string(conf['endDate'], fallback: ''),
+            bannerImageUrl: _string(conf['bannerImageUrl'], fallback: ''),
+            myPaperCount: 0,
+            acceptedCount: 0,
+            roles: conferenceRoles[conferenceId]?.toList() ?? const <String>[],
           ),
-          acronym: _string(conf['acronym'], fallback: ''),
-          location: _string(conf['location'], fallback: 'TBA'),
-          status: _string(conf['status'], fallback: 'UNKNOWN'),
-          startDate: _string(conf['startDate'], fallback: ''),
-          endDate: _string(conf['endDate'], fallback: ''),
-          myPaperCount: 0,
-          acceptedCount: 0,
-          roles: conferenceRoles[conferenceId]?.toList() ?? const <String>[],
-        ));
+        );
       } catch (_) {
         // If conference fetch fails, still show with basic info
-        result.add(AuthorConferenceSummary(
-          conferenceId: conferenceId,
-          conferenceName: conferenceNames[conferenceId] ?? 'Conference #$conferenceId',
-          acronym: '',
-          location: 'TBA',
-          status: 'UNKNOWN',
-          startDate: '',
-          endDate: '',
-          myPaperCount: 0,
-          acceptedCount: 0,
-          roles: conferenceRoles[conferenceId]?.toList() ?? const <String>[],
-        ));
+        result.add(
+          AuthorConferenceSummary(
+            conferenceId: conferenceId,
+            conferenceName:
+                conferenceNames[conferenceId] ?? 'Conference #$conferenceId',
+            acronym: '',
+            location: 'TBA',
+            status: 'UNKNOWN',
+            startDate: '',
+            endDate: '',
+            bannerImageUrl: '',
+            myPaperCount: 0,
+            acceptedCount: 0,
+            roles: conferenceRoles[conferenceId]?.toList() ?? const <String>[],
+          ),
+        );
       }
     }
 
@@ -1029,6 +1043,7 @@ class AuthorConferenceSummary {
     required this.status,
     required this.startDate,
     required this.endDate,
+    this.bannerImageUrl = '',
     required this.myPaperCount,
     required this.acceptedCount,
     this.roles = const <String>[],
@@ -1041,6 +1056,7 @@ class AuthorConferenceSummary {
   final String status;
   final String startDate;
   final String endDate;
+  final String bannerImageUrl;
   final int myPaperCount;
   final int acceptedCount;
   final List<String> roles;

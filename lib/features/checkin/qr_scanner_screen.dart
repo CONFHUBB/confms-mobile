@@ -22,6 +22,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   );
 
   bool _processing = false;
+  bool _scanLocked = false;
   _CheckInResult? _lastResult;
   final List<_CheckInResult> _history = [];
 
@@ -32,7 +33,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
-    if (_processing) return;
+    if (_processing || _scanLocked) return;
     final barcode = capture.barcodes.firstOrNull;
     if (barcode == null || barcode.rawValue == null) return;
 
@@ -42,7 +43,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     setState(() => _processing = true);
 
     try {
-      final data = await widget.apiService.post('/check-in?code=${Uri.encodeComponent(code)}');
+      final data = await widget.apiService.post(
+        '/check-in?code=${Uri.encodeComponent(code)}',
+      );
       final result = _CheckInResult(
         success: true,
         attendeeName: (data['attendeeName'] ?? '') as String,
@@ -59,12 +62,15 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         _history.insert(0, result);
       });
       _showResultDialog(result);
+      if (result.success) {
+        await _controller.stop();
+        if (mounted) {
+          setState(() => _scanLocked = true);
+        }
+      }
     } catch (e) {
       if (!mounted) return;
-      final result = _CheckInResult(
-        success: false,
-        message: e.toString(),
-      );
+      final result = _CheckInResult(success: false, message: e.toString());
       setState(() {
         _lastResult = result;
         _history.insert(0, result);
@@ -106,8 +112,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: (result.success ? Colors.green : Colors.red)
-                    .withValues(alpha: 0.12),
+                color: (result.success ? Colors.green : Colors.red).withValues(
+                  alpha: 0.12,
+                ),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -157,18 +164,28 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     color: Colors.amber.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: Colors.amber.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(children: [
-                    const Icon(Icons.info_outline, size: 16, color: Colors.amber),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text('Already checked in',
-                          style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
-                              color: Colors.amber.shade700,
-                              fontWeight: FontWeight.w600)),
+                      color: Colors.amber.withValues(alpha: 0.3),
                     ),
-                  ]),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Colors.amber,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Already checked in',
+                          style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
+                            color: Colors.amber.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
             ] else
               Text(
@@ -182,8 +199,16 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Scan Next'),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  if (result.success) {
+                    await _controller.start();
+                    if (mounted) {
+                      setState(() => _scanLocked = false);
+                    }
+                  }
+                },
+                child: Text(result.success ? 'Scan Next' : 'Close'),
               ),
             ),
           ],
@@ -212,10 +237,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       body: Stack(
         children: [
           // Camera
-          MobileScanner(
-            controller: _controller,
-            onDetect: _onDetect,
-          ),
+          MobileScanner(controller: _controller, onDetect: _onDetect),
 
           // Scan overlay
           _ScanOverlay(processing: _processing),
@@ -248,7 +270,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                   // Center scan hint
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(999),
@@ -285,30 +309,32 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                       .withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Row(children: [
-                  Icon(
-                    _lastResult!.success
-                        ? Icons.check_circle_rounded
-                        : Icons.error_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
+                child: Row(
+                  children: [
+                    Icon(
                       _lastResult!.success
-                          ? '${_lastResult!.attendeeName} checked in'
-                          : 'Failed: ${_lastResult!.message}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                          ? Icons.check_circle_rounded
+                          : Icons.error_rounded,
+                      color: Colors.white,
+                      size: 18,
                     ),
-                  ),
-                ]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _lastResult!.success
+                            ? '${_lastResult!.attendeeName} checked in'
+                            : 'Failed: ${_lastResult!.message}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
@@ -332,29 +358,38 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-              child: Column(children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: context.scheme.onSurfaceVariant
-                        .withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
+              child: Column(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: context.scheme.onSurfaceVariant.withValues(
+                        alpha: 0.3,
+                      ),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Text('Scan History',
-                      style: Theme.of(ctx)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w800)),
-                  const Spacer(),
-                  Text('${_history.length} scans',
-                      style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
-                          color: context.scheme.onSurfaceVariant)),
-                ]),
-              ]),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Text(
+                        'Scan History',
+                        style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${_history.length} scans',
+                        style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
+                          color: context.scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
             Expanded(
               child: ListView.builder(
@@ -367,50 +402,50 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: (r.success ? Colors.green : Colors.red)
-                          .withValues(alpha: 0.06),
+                      color: (r.success ? Colors.green : Colors.red).withValues(
+                        alpha: 0.06,
+                      ),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                          color: (r.success ? Colors.green : Colors.red)
-                              .withValues(alpha: 0.15)),
+                        color: (r.success ? Colors.green : Colors.red)
+                            .withValues(alpha: 0.15),
+                      ),
                     ),
-                    child: Row(children: [
-                      Icon(
-                        r.success
-                            ? Icons.check_circle_rounded
-                            : Icons.error_rounded,
-                        color: r.success ? Colors.green : Colors.red,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              r.success ? r.attendeeName : 'Failed',
-                              style: Theme.of(ctx)
-                                  .textTheme
-                                  .titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            Text(
-                              r.success
-                                  ? '${r.ticketType} • ${r.registrationNumber}'
-                                  : r.message,
-                              style: Theme.of(ctx)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                      color:
-                                          context.scheme.onSurfaceVariant),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                    child: Row(
+                      children: [
+                        Icon(
+                          r.success
+                              ? Icons.check_circle_rounded
+                              : Icons.error_rounded,
+                          color: r.success ? Colors.green : Colors.red,
+                          size: 20,
                         ),
-                      ),
-                    ]),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                r.success ? r.attendeeName : 'Failed',
+                                style: Theme.of(ctx).textTheme.titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                r.success
+                                    ? '${r.ticketType} • ${r.registrationNumber}'
+                                    : r.message,
+                                style: Theme.of(ctx).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: context.scheme.onSurfaceVariant,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
@@ -437,11 +472,7 @@ class _ScanOverlay extends StatelessWidget {
           children: [
             // Background dim outside scan area
             // Top-left corner
-            Positioned(
-              left: 0,
-              top: 0,
-              child: _Corner(processing: processing),
-            ),
+            Positioned(left: 0, top: 0, child: _Corner(processing: processing)),
             // Top-right corner
             Positioned(
               right: 0,
@@ -472,7 +503,9 @@ class _ScanOverlay extends StatelessWidget {
             ),
             // Processing indicator
             if (processing)
-              const Center(child: CircularProgressIndicator(color: Colors.white)),
+              const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
           ],
         ),
       ),
@@ -529,21 +562,29 @@ class _ControlButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.2),
-            shape: BoxShape.circle,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.white, size: 22),
           ),
-          child: Icon(icon, color: Colors.white, size: 22),
-        ),
-        const SizedBox(height: 4),
-        Text(label,
+          const SizedBox(height: 4),
+          Text(
+            label,
             style: const TextStyle(
-                color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w500)),
-      ]),
+              color: Colors.white70,
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -562,25 +603,29 @@ class _ResultRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(children: [
-        Icon(icon, size: 16, color: context.scheme.onSurfaceVariant),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 90,
-          child: Text(label,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelSmall
-                  ?.copyWith(color: context.scheme.onSurfaceVariant)),
-        ),
-        Expanded(
-          child: Text(value,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600)),
-        ),
-      ]),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: context.scheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 90,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: context.scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

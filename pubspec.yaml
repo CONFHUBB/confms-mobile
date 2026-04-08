@@ -63,15 +63,15 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/images/logo-icon.png"
-  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_background: "#1E1B4B"
   adaptive_icon_foreground: "assets/images/logo-icon.png"
 
 flutter_native_splash:
-  color: "#FFFFFF"
+  color: "#1E1B4B"
   image: "assets/images/logo-icon.png"
   android_12:
     image: "assets/images/logo-icon.png"
-    color: "#FFFFFF"
+    color: "#1E1B4B"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

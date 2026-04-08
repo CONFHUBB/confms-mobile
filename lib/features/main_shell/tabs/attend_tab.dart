@@ -6,6 +6,7 @@ import 'package:confms_mobile/models/auth_user.dart';
 import 'package:confms_mobile/services/mobile_feature_service.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AttendTab extends StatefulWidget {
   const AttendTab({
@@ -447,8 +448,18 @@ class _TicketDetailScreen extends StatelessWidget {
         fallbackFilename: fallbackFilename,
       );
       if (!context.mounted) return;
+      final result = await launchUrl(
+        Uri.file(document.filePath),
+        mode: LaunchMode.externalApplication,
+      );
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Downloaded: ${document.filename}')),
+        SnackBar(
+          content: Text(
+            result
+                ? 'Downloaded: ${document.filename}'
+                : 'Downloaded: ${document.filename}',
+          ),
+        ),
       );
     } catch (error) {
       if (!context.mounted) return;

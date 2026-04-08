@@ -937,18 +937,21 @@ class _PaperDetailsScreenState extends State<_PaperDetailsScreen> {
                 title: 'Manuscript Files',
                 color: Colors.indigo,
                 files: manuscripts,
+                onDownload: _downloadPaperFile,
               ),
               const SizedBox(height: AppDimensions.space3),
               _FileSection(
                 title: 'Supplementary Files',
                 color: Colors.deepPurple,
                 files: supplementary,
+                onDownload: _downloadPaperFile,
               ),
               const SizedBox(height: AppDimensions.space3),
               _FileSection(
                 title: 'Camera Ready Files',
                 color: Colors.teal,
                 files: cameraReady,
+                onDownload: _downloadPaperFile,
               ),
             ],
           );
@@ -965,6 +968,17 @@ class _PaperDetailsScreenState extends State<_PaperDetailsScreen> {
       conferenceId: paper.conferenceId ?? widget.conferenceId,
     );
     return _PaperDetailsBundle(paper: paper, progress: progress);
+  }
+
+  Future<void> _downloadPaperFile(String path, String fallbackFilename) async {
+    final document = await widget.featureService.downloadDocument(
+      path: path,
+      fallbackFilename: fallbackFilename,
+    );
+    await launchUrl(
+      Uri.file(document.filePath),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   String _formatRawDate(String raw) {
@@ -986,11 +1000,13 @@ class _FileSection extends StatelessWidget {
     required this.title,
     required this.color,
     required this.files,
+    required this.onDownload,
   });
 
   final String title;
   final Color color;
   final List<AuthorPaperFile> files;
+  final Future<void> Function(String path, String fallbackFilename) onDownload;
 
   @override
   Widget build(BuildContext context) {
@@ -1019,8 +1035,16 @@ class _FileSection extends StatelessWidget {
                       child: Text(name, overflow: TextOverflow.ellipsis),
                     ),
                     FilledButton.tonalIcon(
-                      onPressed: () =>
-                          launchUrl(uri, mode: LaunchMode.externalApplication),
+                      onPressed: () async {
+                        try {
+                          await onDownload(file.url, name);
+                        } catch (_) {
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        }
+                      },
                       icon: const Icon(Icons.download_rounded, size: 16),
                       label: const Text('Download'),
                     ),

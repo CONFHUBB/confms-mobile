@@ -7,7 +7,13 @@ import 'package:flutter/foundation.dart';
 /// Must be a top-level function — not a class method.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  if (Firebase.apps.isEmpty) {
+    try {
+      await Firebase.initializeApp();
+    } catch (_) {
+      return;
+    }
+  }
   debugPrint('[FCM] Background message: ${message.messageId}');
 }
 
@@ -24,17 +30,22 @@ class PushNotificationService {
   PushNotificationService._();
   static final PushNotificationService instance = PushNotificationService._();
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  FirebaseMessaging? _messaging;
+
+  bool get _hasFirebaseApp => Firebase.apps.isNotEmpty;
 
   String? _fcmToken;
   String? get fcmToken => _fcmToken;
 
   /// Stream of foreground messages (when app is open).
-  Stream<RemoteMessage> get onMessage => FirebaseMessaging.onMessage;
+  Stream<RemoteMessage> get onMessage =>
+      _hasFirebaseApp ? FirebaseMessaging.onMessage : const Stream.empty();
 
   /// Stream of messages that caused the app to open from background.
   Stream<RemoteMessage> get onMessageOpenedApp =>
-      FirebaseMessaging.onMessageOpenedApp;
+      _hasFirebaseApp
+          ? FirebaseMessaging.onMessageOpenedApp
+          : const Stream.empty();
 
   /// Whether push has been initialized.
   bool _initialized = false;
@@ -44,12 +55,19 @@ class PushNotificationService {
   /// Call this once at app startup, after Firebase.initializeApp().
   Future<void> initialize() async {
     if (_initialized) return;
+    if (!_hasFirebaseApp) {
+      debugPrint('[FCM] Firebase not initialized. Skipping push setup.');
+      return;
+    }
+
+    _messaging ??= FirebaseMessaging.instance;
+    final messaging = _messaging!;
 
     // Register the background handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
     // Request permissions (iOS & Android 13+)
-    final settings = await _messaging.requestPermission(
+    final settings = await messaging.requestPermission(
       alert: true,
       announcement: false,
       badge: true,
@@ -66,14 +84,14 @@ class PushNotificationService {
         settings.authorizationStatus == AuthorizationStatus.provisional) {
       // Get the FCM token
       try {
-        _fcmToken = await _messaging.getToken();
+        _fcmToken = await messaging.getToken();
         debugPrint('[FCM] Token: $_fcmToken');
       } catch (e) {
         debugPrint('[FCM] Error getting token: $e');
       }
 
       // Listen for token refresh
-      _messaging.onTokenRefresh.listen((newToken) {
+      messaging.onTokenRefresh.listen((newToken) {
         _fcmToken = newToken;
         debugPrint('[FCM] Token refreshed: $newToken');
         _onTokenRefreshController.add(newToken);
@@ -92,18 +110,24 @@ class PushNotificationService {
   /// Check if this app was launched by tapping a notification.
   /// Call once at startup to handle initial notification.
   Future<RemoteMessage?> getInitialMessage() async {
-    return _messaging.getInitialMessage();
+    if (!_hasFirebaseApp) return null;
+    _messaging ??= FirebaseMessaging.instance;
+    return _messaging!.getInitialMessage();
   }
 
   /// Subscribe to a topic (e.g., conference-specific notifications).
   Future<void> subscribeToTopic(String topic) async {
-    await _messaging.subscribeToTopic(topic);
+    if (!_hasFirebaseApp) return;
+    _messaging ??= FirebaseMessaging.instance;
+    await _messaging!.subscribeToTopic(topic);
     debugPrint('[FCM] Subscribed to: $topic');
   }
 
   /// Unsubscribe from a topic.
   Future<void> unsubscribeFromTopic(String topic) async {
-    await _messaging.unsubscribeFromTopic(topic);
+    if (!_hasFirebaseApp) return;
+    _messaging ??= FirebaseMessaging.instance;
+    await _messaging!.unsubscribeFromTopic(topic);
     debugPrint('[FCM] Unsubscribed from: $topic');
   }
 
