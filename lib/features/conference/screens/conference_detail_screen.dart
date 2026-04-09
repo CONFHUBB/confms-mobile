@@ -53,7 +53,6 @@ class ConferenceDetailScreen extends StatelessWidget {
             conference: data.conference,
             progress: data.progress,
             tracks: data.tracks,
-            feedback: data.feedback,
           );
         },
       ),
@@ -64,7 +63,6 @@ class ConferenceDetailScreen extends StatelessWidget {
     final conference = await conferenceService.getConferenceById(conferenceId);
     List<ConferenceProgressStep> progress = const [];
     List<Map<String, dynamic>> tracks = const [];
-    List<Map<String, dynamic>> feedback = const [];
 
     if (featureService != null) {
       try {
@@ -77,28 +75,47 @@ class ConferenceDetailScreen extends StatelessWidget {
     final api = apiService ?? featureService?.apiServiceRef;
     if (api != null) {
       try {
-        final tracksData = await api.getAny('/tracks/conference/$conferenceId');
-        if (tracksData is List) {
-          tracks = tracksData.whereType<Map<String, dynamic>>().toList();
-        }
-      } catch (_) {}
-
-      try {
-        final feedbackData = await api.getAny(
-          '/conference-feedback/conference/$conferenceId',
+        final tracksData = await api.getAny(
+          '/conferences-track/conferenceId/$conferenceId?page=0&size=100',
         );
-        if (feedbackData is List) {
-          feedback = feedbackData.whereType<Map<String, dynamic>>().toList();
-        }
-      } catch (_) {}
+        tracks = _normalizeTrackList(tracksData);
+      } catch (_) {
+        try {
+          final fallback = await api.getAny('/tracks/conference/$conferenceId');
+          tracks = _normalizeTrackList(fallback);
+        } catch (_) {}
+      }
     }
 
     return _DetailBundle(
       conference: conference,
       progress: progress,
       tracks: tracks,
-      feedback: feedback,
     );
+  }
+
+  List<Map<String, dynamic>> _normalizeTrackList(dynamic raw) {
+    if (raw is List) {
+      return raw.whereType<Map<String, dynamic>>().toList();
+    }
+    if (raw is Map<String, dynamic>) {
+      final content = raw['content'];
+      if (content is List) {
+        return content.whereType<Map<String, dynamic>>().toList();
+      }
+      final data = raw['data'];
+      if (data is List) {
+        return data.whereType<Map<String, dynamic>>().toList();
+      }
+      final items = raw['items'];
+      if (items is List) {
+        return items.whereType<Map<String, dynamic>>().toList();
+      }
+      if (raw.containsKey('id') || raw.containsKey('name')) {
+        return [raw];
+      }
+    }
+    return const [];
   }
 
   int? _resolveConferenceId(dynamic args) {
@@ -119,12 +136,10 @@ class _DetailBundle {
     required this.conference,
     required this.progress,
     this.tracks = const [],
-    this.feedback = const [],
   });
   final Conference conference;
   final List<ConferenceProgressStep> progress;
   final List<Map<String, dynamic>> tracks;
-  final List<Map<String, dynamic>> feedback;
 }
 
 class _ErrorView extends StatelessWidget {
@@ -161,20 +176,18 @@ class _ErrorView extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-//  Hero + TabBar (Overview / Tracks / Reviews)
+//  Hero + TabBar (Overview / Tracks)
 // ═══════════════════════════════════════════════════════════════════════
 class _ConferenceDetailContent extends StatefulWidget {
   const _ConferenceDetailContent({
     required this.conference,
     required this.progress,
     this.tracks = const [],
-    this.feedback = const [],
   });
 
   final Conference conference;
   final List<ConferenceProgressStep> progress;
   final List<Map<String, dynamic>> tracks;
-  final List<Map<String, dynamic>> feedback;
 
   @override
   State<_ConferenceDetailContent> createState() =>
@@ -188,7 +201,7 @@ class _ConferenceDetailContentState extends State<_ConferenceDetailContent>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -262,15 +275,7 @@ class _ConferenceDetailContentState extends State<_ConferenceDetailContent>
                 else
                   Container(
                     decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFF4338CA),
-                          Color(0xFF7C3AED),
-                          Color(0xFF6D28D9),
-                        ],
-                      ),
+                      gradient: AppColors.primaryGradient,
                     ),
                   ),
                 Container(
@@ -365,21 +370,6 @@ class _ConferenceDetailContentState extends State<_ConferenceDetailContent>
                     ],
                   ),
                 ),
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Reviews'),
-                      if (widget.feedback.isNotEmpty) ...[
-                        const SizedBox(width: 4),
-                        _CountBadge(
-                          count: widget.feedback.length,
-                          color: Colors.orange,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -395,14 +385,12 @@ class _ConferenceDetailContentState extends State<_ConferenceDetailContent>
             fmtStr: _fmtStr,
           ),
           _TracksTab(tracks: widget.tracks),
-          _FeedbackTab(feedback: widget.feedback),
         ],
       ),
     );
   }
 }
 
-// ───────────────────────── tiny helpers ─────────────────────────
 class _HeroBadge extends StatelessWidget {
   const _HeroBadge({
     required this.text,
@@ -664,6 +652,7 @@ class _TracksTab extends StatelessWidget {
 
   Color _statusColor(String s) {
     switch (s.toUpperCase()) {
+      case 'OPEN':
       case 'ACTIVE':
       case 'APPROVED':
         return Colors.green;
@@ -712,7 +701,8 @@ class _TracksTab extends StatelessWidget {
         final t = tracks[idx];
         final name = (t['name'] ?? 'Track ${idx + 1}') as String;
         final desc = (t['description'] ?? '') as String;
-        final status = (t['status'] ?? t['trackStatus'] ?? 'ACTIVE') as String;
+        final rawStatus = (t['status'] ?? t['trackStatus'] ?? 'OPEN').toString();
+        final status = rawStatus.toUpperCase() == 'ACTIVE' ? 'OPEN' : rawStatus;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -806,125 +796,6 @@ class _MiniStatusBadge extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-//  TAB 3: Feedback / Reviews
-// ═══════════════════════════════════════════════════════════════════════
-class _FeedbackTab extends StatelessWidget {
-  const _FeedbackTab({required this.feedback});
-  final List<Map<String, dynamic>> feedback;
-
-  @override
-  Widget build(BuildContext context) {
-    if (feedback.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.rate_review_outlined,
-              size: 56,
-              color: context.scheme.onSurfaceVariant.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'No feedback yet',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: context.scheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Attendee reviews will appear here.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: context.scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(AppDimensions.screenPadding),
-      itemCount: feedback.length,
-      itemBuilder: (context, idx) {
-        final fb = feedback[idx];
-        final rating = fb['rating'];
-        final comment = (fb['comment'] ?? '') as String;
-        final author =
-            (fb['userName'] ?? fb['authorName'] ?? 'Anonymous') as String;
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: context.scheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.tokens.cardBorder),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Colors.orange.withValues(alpha: 0.12),
-                    child: Text(
-                      author.isNotEmpty ? author[0].toUpperCase() : 'A',
-                      style: const TextStyle(
-                        color: Colors.orange,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      author,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  if (rating != null)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(5, (i) {
-                        final r = (rating is int)
-                            ? rating
-                            : (rating is double)
-                            ? rating.round()
-                            : 0;
-                        return Icon(
-                          i < r
-                              ? Icons.star_rounded
-                              : Icons.star_border_rounded,
-                          size: 16,
-                          color: Colors.amber,
-                        );
-                      }),
-                    ),
-                ],
-              ),
-              if (comment.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(
-                  comment,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(height: 1.5),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
     );
   }
 }

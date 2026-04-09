@@ -1,5 +1,4 @@
 import 'package:confms_mobile/constants/app_theme.dart';
-import 'package:confms_mobile/constants/colors.dart';
 import 'package:confms_mobile/constants/dimensions.dart';
 import 'package:confms_mobile/features/main_shell/widgets/main_tab_scaffold.dart';
 import 'package:confms_mobile/features/main_shell/widgets/shell_shared_widgets.dart';
@@ -453,9 +452,15 @@ class _ThumbFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
-      child: const Center(
-        child: Icon(Icons.event_rounded, color: Colors.white, size: 26),
+      color: Colors.white,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Image.asset(
+            'assets/images/Logo Favicon.png',
+            fit: BoxFit.contain,
+          ),
+        ),
       ),
     );
   }

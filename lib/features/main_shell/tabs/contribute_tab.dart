@@ -8,6 +8,7 @@ import 'package:confms_mobile/models/auth_user.dart';
 import 'package:confms_mobile/services/mobile_feature_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 enum _WorkspaceSection { overview, myPapers, cameraReady }
@@ -975,10 +976,7 @@ class _PaperDetailsScreenState extends State<_PaperDetailsScreen> {
       path: path,
       fallbackFilename: fallbackFilename,
     );
-    await launchUrl(
-      Uri.file(document.filePath),
-      mode: LaunchMode.externalApplication,
-    );
+    await OpenFilex.open(document.filePath);
   }
 
   String _formatRawDate(String raw) {

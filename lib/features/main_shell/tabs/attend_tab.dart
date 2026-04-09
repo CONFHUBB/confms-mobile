@@ -5,8 +5,8 @@ import 'package:confms_mobile/features/main_shell/widgets/shell_shared_widgets.d
 import 'package:confms_mobile/models/auth_user.dart';
 import 'package:confms_mobile/services/mobile_feature_service.dart';
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class AttendTab extends StatefulWidget {
   const AttendTab({
@@ -448,16 +448,13 @@ class _TicketDetailScreen extends StatelessWidget {
         fallbackFilename: fallbackFilename,
       );
       if (!context.mounted) return;
-      final result = await launchUrl(
-        Uri.file(document.filePath),
-        mode: LaunchMode.externalApplication,
-      );
+      final result = await OpenFilex.open(document.filePath);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            result
+            result.type == ResultType.done
                 ? 'Downloaded: ${document.filename}'
-                : 'Downloaded: ${document.filename}',
+                : 'Downloaded but cannot open automatically: ${document.filename}',
           ),
         ),
       );

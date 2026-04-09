@@ -36,7 +36,7 @@ class AuthPageScaffold extends StatelessWidget {
                     ),
                   ),
                   Image.asset(
-                    'assets/images/logo-wide.png',
+                    'assets/images/Logo Main.png',
                     height: 32,
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => const Text(

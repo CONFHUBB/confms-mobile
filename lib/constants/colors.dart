@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 class AppColors {
   const AppColors._();
 
-  static const Color primary = Color(0xFF4338CA); // indigo-700
-  static const Color primaryBase = Color(0xFF4F46E5); // indigo-600
-  static const Color primaryStart = Color(0xFF1E1B4B);
-  static const Color primaryMid = Color(0xFF272463);
-  static const Color primaryEnd = Color(0xFF312E81);
+  static const Color primary = Color(0xFF4A6FA5); // custom blue
+  static const Color primaryBase = Color(0xFF4A6FA5); // custom blue
+  static const Color primaryStart = Color(0xFF3F5F8F);
+  static const Color primaryMid = Color(0xFF4A6FA5);
+  static const Color primaryEnd = Color(0xFF5D84BD);
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
