@@ -457,7 +457,7 @@ class _ThumbFallback extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Image.asset(
-            'assets/images/Logo Favicon.png',
+            'assets/images/Favicon-White (1).png',
             fit: BoxFit.contain,
           ),
         ),

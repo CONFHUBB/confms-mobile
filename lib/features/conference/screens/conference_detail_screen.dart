@@ -5,8 +5,8 @@ import 'package:confms_mobile/models/conference.dart';
 import 'package:confms_mobile/services/api_service.dart';
 import 'package:confms_mobile/services/conference_service.dart';
 import 'package:confms_mobile/services/mobile_feature_service.dart';
+import 'package:confms_mobile/utils/date_time_display.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ConferenceDetailScreen extends StatelessWidget {
@@ -210,12 +210,9 @@ class _ConferenceDetailContentState extends State<_ConferenceDetailContent>
     super.dispose();
   }
 
-  String _fmt(DateTime d) => DateFormat('MMM d, yyyy').format(d);
+  String _fmt(DateTime d) => formatDateTimeFromDate(d);
   String _fmtStr(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return 'TBA';
-    final parsed = DateTime.tryParse(raw);
-    if (parsed == null) return raw;
-    return DateFormat('MMM d, yyyy').format(parsed);
+    return formatDateTimeYmdHms(raw);
   }
 
   Color _statusColor(String s) {

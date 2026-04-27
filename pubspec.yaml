@@ -63,16 +63,17 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/Logo Favicon.png"
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/Logo Favicon.png"
+  remove_alpha_ios: true
+  image_path: "assets/images/app-icon-square.png"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/images/app-icon-square.png"
 
 flutter_native_splash:
-  color: "#FFFFFF"
-  image: "assets/images/Logo Main.png"
+  color: "#000000"
+  image: "assets/images/White (1).png"
   android_12:
-    image: "assets/images/Logo Favicon.png"
-    color: "#FFFFFF"
+    image: "assets/images/app-icon-square.png"
+    color: "#000000"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

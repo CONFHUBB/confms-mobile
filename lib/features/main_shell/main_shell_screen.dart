@@ -312,8 +312,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
                 ),
                 const SizedBox(height: 12),
                 // Logo
-                Image.asset(
-                  'assets/images/Logo Main.png',
+                    Image.asset(
+                      'assets/images/White (1).png',
                   height: 20,
                   fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => const Text(

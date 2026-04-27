@@ -64,7 +64,7 @@ class MainTabScaffold extends StatelessWidget {
               if (onMenuTap != null) const SizedBox(width: 8),
               // Logo
               Image.asset(
-                'assets/images/Logo Main.png',
+                'assets/images/White (1).png',
                 height: 24,
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => const Text(
