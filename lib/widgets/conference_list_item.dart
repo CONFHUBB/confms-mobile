@@ -2,9 +2,9 @@ import 'package:confms_mobile/constants/colors.dart';
 import 'package:confms_mobile/constants/dimensions.dart';
 import 'package:confms_mobile/constants/text_styles.dart';
 import 'package:confms_mobile/models/conference.dart';
+import 'package:confms_mobile/utils/date_time_display.dart';
 import 'package:confms_mobile/widgets/custom_card.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 class ConferenceListItem extends StatelessWidget {
   const ConferenceListItem({super.key, required this.conference, this.onTap});
@@ -14,8 +14,6 @@ class ConferenceListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFormatter = DateFormat('MMM d, y');
-
     return CustomCard(
       onTap: onTap,
       padding: EdgeInsets.zero,
@@ -62,7 +60,7 @@ class ConferenceListItem extends StatelessWidget {
                     const SizedBox(width: AppDimensions.space2),
                     Expanded(
                       child: Text(
-                        '${dateFormatter.format(conference.startDate)} - ${dateFormatter.format(conference.endDate)}',
+                        '${formatDateTimeFromDate(conference.startDate)} - ${formatDateTimeFromDate(conference.endDate)}',
                         style: AppTextStyles.caption,
                       ),
                     ),

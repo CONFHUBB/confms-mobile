@@ -6,8 +6,8 @@ import 'package:confms_mobile/features/main_shell/widgets/main_tab_scaffold.dart
 import 'package:confms_mobile/features/main_shell/widgets/shell_shared_widgets.dart';
 import 'package:confms_mobile/models/auth_user.dart';
 import 'package:confms_mobile/services/mobile_feature_service.dart';
+import 'package:confms_mobile/utils/date_time_display.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -430,10 +430,7 @@ class _ContributeTabState extends State<ContributeTab> {
   }
 
   String _formatDate(String raw) {
-    if (raw.trim().isEmpty) return 'TBA';
-    final parsed = DateTime.tryParse(raw);
-    if (parsed == null) return raw;
-    return DateFormat('MMM d, yyyy').format(parsed);
+    return formatDateTimeYmdHms(raw);
   }
 
   Widget _badge(String label, IconData icon, Color color) {
@@ -500,9 +497,7 @@ class _ConferenceMetaCard extends StatelessWidget {
   }
 
   String _formatRawDate(String raw) {
-    final parsed = DateTime.tryParse(raw);
-    if (parsed == null) return raw.isEmpty ? 'TBA' : raw;
-    return DateFormat('MMM d, yyyy').format(parsed);
+    return formatDateTimeYmdHms(raw);
   }
 }
 
@@ -643,9 +638,7 @@ class _ConferenceTimeline extends StatelessWidget {
   }
 
   String _formatRawDate(String raw) {
-    final parsed = DateTime.tryParse(raw);
-    if (parsed == null) return raw.isEmpty ? 'TBA' : raw;
-    return DateFormat('MMM d, yyyy').format(parsed);
+    return formatDateTimeYmdHms(raw);
   }
 }
 
@@ -980,9 +973,7 @@ class _PaperDetailsScreenState extends State<_PaperDetailsScreen> {
   }
 
   String _formatRawDate(String raw) {
-    final parsed = DateTime.tryParse(raw);
-    if (parsed == null) return raw.isEmpty ? '—' : raw;
-    return DateFormat('MMM d, yyyy').format(parsed);
+    return formatDateTimeYmdHms(raw, emptyFallback: '—');
   }
 }
 

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:confms_mobile/models/user_profile.dart';
 import 'package:confms_mobile/services/api_service.dart';
+import 'package:confms_mobile/utils/date_time_display.dart';
 
 const int _authorPaperPageSize = 100;
 
@@ -173,7 +174,10 @@ class MobileFeatureService {
         userEmail: _string(raw['userEmail'], fallback: ''),
         priceLabel: _formatCurrencyVnd((raw['price'] as num?)?.toInt() ?? 0),
         isCheckedIn: isCheckedIn,
-        createdAt: _string(raw['createdAt'], fallback: ''),
+        createdAt: formatDateTimeYmdHms(
+          _string(raw['createdAt'], fallback: ''),
+          emptyFallback: '',
+        ),
       );
     }).toList();
   }
@@ -284,7 +288,10 @@ class MobileFeatureService {
         ),
         isRead: raw['isRead'] == true,
         type: type,
-        createdAt: _string(raw['createdAt'], fallback: ''),
+        createdAt: formatDateTimeYmdHms(
+          _string(raw['createdAt'], fallback: ''),
+          emptyFallback: '',
+        ),
       );
     }).toList();
   }
@@ -318,8 +325,14 @@ class MobileFeatureService {
         raw['registrationNumber'],
         fallback: '-',
       );
-      final payDate = _string(raw['payDate'], fallback: '');
-      final recordedAt = _string(raw['recordedAt'], fallback: '');
+      final payDate = formatDateTimeYmdHms(
+        _string(raw['payDate'], fallback: ''),
+        emptyFallback: '',
+      );
+      final recordedAt = formatDateTimeYmdHms(
+        _string(raw['recordedAt'], fallback: ''),
+        emptyFallback: '',
+      );
 
       return PaymentHistoryPreview(
         id: _toInt(raw['id']) ?? 0,
@@ -374,8 +387,14 @@ class MobileFeatureService {
           acronym: _string(conf['acronym'], fallback: ''),
           location: _string(conf['location'], fallback: 'TBA'),
           status: status,
-          startDate: _string(conf['startDate'], fallback: ''),
-          endDate: _string(conf['endDate'], fallback: ''),
+          startDate: formatDateTimeYmdHms(
+            _string(conf['startDate'], fallback: ''),
+            emptyFallback: '',
+          ),
+          endDate: formatDateTimeYmdHms(
+            _string(conf['endDate'], fallback: ''),
+            emptyFallback: '',
+          ),
           bannerImageUrl: _string(conf['bannerImageUrl'], fallback: ''),
           myPaperCount: papers.length,
           acceptedCount: papers.where((p) {
@@ -480,8 +499,14 @@ class MobileFeatureService {
             acronym: _string(conf['acronym'], fallback: ''),
             location: _string(conf['location'], fallback: 'TBA'),
             status: _string(conf['status'], fallback: 'UNKNOWN'),
-            startDate: _string(conf['startDate'], fallback: ''),
-            endDate: _string(conf['endDate'], fallback: ''),
+            startDate: formatDateTimeYmdHms(
+              _string(conf['startDate'], fallback: ''),
+              emptyFallback: '',
+            ),
+            endDate: formatDateTimeYmdHms(
+              _string(conf['endDate'], fallback: ''),
+              emptyFallback: '',
+            ),
             bannerImageUrl: _string(conf['bannerImageUrl'], fallback: ''),
             myPaperCount: 0,
             acceptedCount: 0,
@@ -529,7 +554,10 @@ class MobileFeatureService {
         activityType: _string(raw['activityType'], fallback: 'UNKNOWN'),
         name: _string(raw['name'], fallback: 'Activity'),
         isEnabled: raw['isEnabled'] == true,
-        deadline: _string(raw['deadline'], fallback: ''),
+        deadline: formatDateTimeYmdHms(
+          _string(raw['deadline'], fallback: ''),
+          emptyFallback: '',
+        ),
       );
     }).toList();
   }
@@ -572,7 +600,10 @@ class MobileFeatureService {
           title: _string(row['title'], fallback: 'Paper #$paperId'),
           status: _string(row['status'], fallback: 'SUBMITTED'),
           trackName: _string(row['trackName'], fallback: 'Main Track'),
-          submissionTime: _string(row['submissionTime'], fallback: ''),
+          submissionTime: formatDateTimeYmdHms(
+            _string(row['submissionTime'], fallback: ''),
+            emptyFallback: '',
+          ),
           averageScore: aggregate,
           finalDecision: finalDecision,
         ),
@@ -668,7 +699,10 @@ class MobileFeatureService {
       secondarySubjectAreaIds: secondarySubjectAreaIds,
       plagiarismStatus: _string(paper['plagiarismStatus'], fallback: 'UNKNOWN'),
       trackName: _string(paper['trackName'], fallback: 'Main Track'),
-      submissionTime: _string(paper['submissionTime'], fallback: ''),
+      submissionTime: formatDateTimeYmdHms(
+        _string(paper['submissionTime'], fallback: ''),
+        emptyFallback: '',
+      ),
       averageScore: average,
       finalDecision: decision,
       files: files,

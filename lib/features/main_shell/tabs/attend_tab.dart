@@ -4,6 +4,7 @@ import 'package:confms_mobile/features/main_shell/widgets/main_tab_scaffold.dart
 import 'package:confms_mobile/features/main_shell/widgets/shell_shared_widgets.dart';
 import 'package:confms_mobile/models/auth_user.dart';
 import 'package:confms_mobile/services/mobile_feature_service.dart';
+import 'package:confms_mobile/utils/date_time_display.dart';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -401,7 +402,10 @@ class _TicketDetailScreen extends StatelessWidget {
                   SimpleListTile(
                     title: 'Registered At',
                     subtitle: ticket.createdAt?.isNotEmpty == true
-                        ? ticket.createdAt!
+                        ? formatDateTimeYmdHms(
+                            ticket.createdAt,
+                            emptyFallback: '—',
+                          )
                         : '—',
                     trailing: const Icon(Icons.schedule_rounded),
                   ),

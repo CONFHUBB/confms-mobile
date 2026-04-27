@@ -4,8 +4,8 @@ import 'package:confms_mobile/features/main_shell/widgets/main_tab_scaffold.dart
 import 'package:confms_mobile/features/main_shell/widgets/shell_shared_widgets.dart';
 import 'package:confms_mobile/models/auth_user.dart';
 import 'package:confms_mobile/services/mobile_feature_service.dart';
+import 'package:confms_mobile/utils/date_time_display.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 const int _pageSize = 10;
 
@@ -577,10 +577,7 @@ class _ChairConferenceCard extends StatelessWidget {
   }
 
   String _formatDate(String raw) {
-    if (raw.trim().isEmpty) return 'TBA';
-    final parsed = DateTime.tryParse(raw);
-    if (parsed == null) return raw;
-    return DateFormat('MMM d, yyyy').format(parsed);
+    return formatDateTimeYmdHms(raw);
   }
 
   @override
